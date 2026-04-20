@@ -31,6 +31,7 @@ export default function Home() {
   const [logs, setLogs] = useState<string[]>([]);
   const [nodeStatus, setNodeStatus] = useState<'idle' | 'syncing' | 'active'>('idle');
   const [uptime, setUptime] = useState(0);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Settings State
   const [settings, setSettings] = useState({
@@ -48,6 +49,11 @@ export default function Home() {
   };
 
   const handleSaveSettings = () => {
+    setShowConfirmDialog(true);
+  };
+
+  const confirmSaveSettings = () => {
+    setShowConfirmDialog(false);
     addLog('System configuration updated. Reloading services...');
     setNodeStatus('syncing');
     setTimeout(() => {
@@ -409,6 +415,63 @@ export default function Home() {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* Confirmation Dialog Overlay */}
+      <AnimatePresence>
+        {showConfirmDialog && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowConfirmDialog(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 p-8 overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-amber-500" />
+              
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center shrink-0">
+                  <RefreshCcw className="text-amber-600 animate-spin-slow" size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 tracking-tight">Confirm Operations</h3>
+                  <p className="text-sm text-slate-500">Applying these changes will trigger a node restart.</p>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 rounded-xl p-4 mb-8 border border-slate-100">
+                <div className="flex items-start gap-3">
+                  <Activity size={16} className="text-slate-400 mt-0.5" />
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Detected network shift to <span className="font-bold text-indigo-600 font-mono">{settings.network.toUpperCase()}</span>. All active peer tunnels will be reset and local cache may undergo re-validation.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowConfirmDialog(false)}
+                  className="flex-1 px-4 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={confirmSaveSettings}
+                  className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-lg shadow-indigo-500/25 transition-all active:scale-95"
+                >
+                  Apply & Restart
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
