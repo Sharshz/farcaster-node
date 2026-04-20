@@ -22,8 +22,11 @@ import {
   Key,
   HardDrive,
   Save,
-  ChevronRight
+  ChevronRight,
+  Sparkles,
+  Bot
 } from 'lucide-react';
+import { GoogleGenAI } from "@google/genai";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'settings'>('dashboard');
@@ -32,6 +35,8 @@ export default function Home() {
   const [nodeStatus, setNodeStatus] = useState<'idle' | 'syncing' | 'active'>('idle');
   const [uptime, setUptime] = useState(0);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [aiInsights, setAiInsights] = useState<string | null>(null);
+  const [isAILoading, setIsAILoading] = useState(false);
 
   // Settings State
   const [settings, setSettings] = useState({
@@ -54,12 +59,49 @@ export default function Home() {
 
   const confirmSaveSettings = () => {
     setShowConfirmDialog(false);
+    setAiInsights(null); // Clear insights on setting change as logs will shift
     addLog('System configuration updated. Reloading services...');
     setNodeStatus('syncing');
     setTimeout(() => {
       setNodeStatus('active');
       addLog('Node restarted with new configurations.');
     }, 2000);
+  };
+
+  const generateAIInsights = async () => {
+    if (logs.length === 0) return;
+    
+    setIsAILoading(true);
+    setAiInsights(null);
+    
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY as string });
+      const prompt = `
+        You are an expert Farcaster Node Operator AI. 
+        Analyze the following system logs from a Farcaster node (PulseNode) and provide a concise, professional summary.
+        Identify the current status, and if any potential issues or optimizations are needed.
+        
+        LOGS:
+        ${logs.join('\n')}
+        
+        FORMAT:
+        - Concise Status Summary (1 sentence)
+        - Key Observations (bullets)
+        - Recommended Actions (if any)
+      `;
+      
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+      });
+      
+      setAiInsights(response.text || "Unable to parse node activity at this time.");
+    } catch (error) {
+      console.error('Gemini Error:', error);
+      setAiInsights("AI Analysis offline. Ensure GEMINI_API_KEY is configured.");
+    } finally {
+      setIsAILoading(false);
+    }
   };
 
   useEffect(() => {
@@ -276,6 +318,66 @@ export default function Home() {
                         ))}
                         <div className="w-1 h-3 bg-indigo-500/80 mt-1 inline-block animate-pulse" />
                       </div>
+                    </div>
+
+                    {/* AI Insights Section */}
+                    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 flex flex-col">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                            <Bot size={16} className="text-indigo-600" />
+                          </div>
+                          <div>
+                            <h2 className="text-sm font-bold text-slate-900 tracking-tight leading-tight">Node Intelligence</h2>
+                            <p className="text-[10px] text-slate-500 font-medium tracking-tight">AI Diagnostic analysis</p>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={generateAIInsights}
+                          disabled={isAILoading || logs.length === 0}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 rounded-lg transition-all text-[11px] font-bold border border-slate-200/50"
+                        >
+                          {isAILoading ? (
+                            <>
+                              <RefreshCcw size={12} className="animate-spin text-indigo-600" />
+                              <span>Deep Scan...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles size={12} className="text-indigo-500" />
+                              <span>Analyze Flux</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      <AnimatePresence mode="wait">
+                        {aiInsights ? (
+                          <motion.div
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -5 }}
+                            className="bg-indigo-50/20 rounded-lg p-4 border border-indigo-100/30 relative"
+                          >
+                            <div className="text-[11px] leading-relaxed text-slate-600 whitespace-pre-wrap font-sans">
+                              {aiInsights}
+                            </div>
+                          </motion.div>
+                        ) : !isAILoading ? (
+                          <div className="flex flex-col items-center justify-center py-6 opacity-40">
+                            <Sparkles size={24} className="text-indigo-300 mb-2" />
+                            <p className="text-[10px] font-medium text-slate-500 text-center px-6 leading-normal">
+                              Analyze node activity to surface intelligent performance markers and sync health diagnostics.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2 py-2">
+                            <div className="h-2 bg-slate-50 rounded animate-pulse w-3/4" />
+                            <div className="h-2 bg-slate-50 rounded animate-pulse w-full" />
+                            <div className="h-2 bg-slate-50 rounded animate-pulse w-5/6" />
+                          </div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </div>
                 </div>
