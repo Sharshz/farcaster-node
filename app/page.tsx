@@ -27,6 +27,7 @@ import {
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'settings'>('dashboard');
+  const [user, setUser] = useState<any>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const [nodeStatus, setNodeStatus] = useState<'idle' | 'syncing' | 'active'>('idle');
   const [uptime, setUptime] = useState(0);
@@ -64,6 +65,7 @@ export default function Home() {
           addLog('SDK tunnel established.');
           const context = await sdk.context;
           if (context) {
+            setUser(context.user);
             addLog(`Authorized: ${context.user?.displayName || 'Observer'}`);
           }
         } catch (e) {
@@ -148,6 +150,12 @@ export default function Home() {
             </p>
           </div>
           <div className="flex items-center gap-4">
+            {user && (
+              <div className="flex flex-col items-end mr-2">
+                <span className="text-xs font-bold text-slate-800 leading-tight">{user.displayName}</span>
+                <span className="text-[9px] font-mono text-indigo-500 uppercase tracking-tighter">FID: {user.fid}</span>
+              </div>
+            )}
             <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg">
               <span className="text-xs font-medium text-slate-600 uppercase tracking-tighter">v2.4.0</span>
               <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
