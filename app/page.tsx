@@ -27,6 +27,16 @@ import {
   Bot
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  Legend
+} from 'recharts';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'settings'>('dashboard');
@@ -37,6 +47,7 @@ export default function Home() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [aiInsights, setAiInsights] = useState<string | null>(null);
   const [isAILoading, setIsAILoading] = useState(false);
+  const [chartData, setChartData] = useState<any[]>([]);
 
   // Settings State
   const [settings, setSettings] = useState({
@@ -133,6 +144,20 @@ export default function Home() {
 
     const interval = setInterval(() => {
       setUptime(prev => prev + 1);
+      
+      // Update chart data
+      setChartData(prev => {
+        const newData = [
+          ...prev.slice(-19),
+          {
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            msgRate: 70 + Math.random() * 30,
+            syncRate: 98 + Math.random() * 2,
+            apiVolume: 40 + Math.random() * 60
+          }
+        ];
+        return newData;
+      });
     }, 1000);
 
     return () => clearInterval(interval);
@@ -247,14 +272,86 @@ export default function Home() {
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                  <div className="xl:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col min-h-[400px]">
-                    <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-                      <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-                        <Globe className="text-indigo-500" size={18} />
-                        Network Sync status
-                      </h3>
-                      <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded uppercase font-mono tracking-widest animate-pulse">Live</span>
+                  <div className="xl:col-span-2 space-y-6">
+                    <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col h-[350px]">
+                      <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+                        <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                          <BarChart3 className="text-indigo-500" size={18} />
+                          Live Performance Metrics
+                        </h3>
+                        <div className="flex gap-4">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Messages/s</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Sync %</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 rounded-full bg-amber-500" />
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">API Vol</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-4 flex-1">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={chartData}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis 
+                              dataKey="time" 
+                              hide 
+                            />
+                            <YAxis 
+                              domain={[0, 120]} 
+                              hide
+                            />
+                            <Tooltip 
+                              contentStyle={{ 
+                                backgroundColor: '#fff', 
+                                border: '1px solid #e2e8f0', 
+                                borderRadius: '8px',
+                                fontSize: '10px',
+                                fontWeight: 'bold'
+                              }}
+                            />
+                            <Line 
+                              type="monotone" 
+                              dataKey="msgRate" 
+                              stroke="#6366f1" 
+                              strokeWidth={3} 
+                              dot={false} 
+                              animationDuration={300}
+                            />
+                            <Line 
+                              type="monotone" 
+                              dataKey="syncRate" 
+                              stroke="#10b981" 
+                              strokeWidth={3} 
+                              dot={false} 
+                              animationDuration={300}
+                            />
+                            <Line 
+                              type="monotone" 
+                              dataKey="apiVolume" 
+                              stroke="#f59e0b" 
+                              strokeWidth={3} 
+                              dot={false} 
+                              animationDuration={300}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
                     </div>
+
+                    <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col min-h-[400px]">
+                      <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+                        <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                          <Globe className="text-indigo-500" size={18} />
+                          Network Sync status
+                        </h3>
+                        <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded uppercase font-mono tracking-widest animate-pulse">Live</span>
+                      </div>
                     <div className="p-6 flex-1 space-y-6">
                       <SyncItem label="Cast Messages Sync" current={48122094} total={48122094} color="bg-emerald-500" />
                       <SyncItem label="Reaction Delta Sync" current={112042391} total={112042391} color="bg-emerald-500" />
