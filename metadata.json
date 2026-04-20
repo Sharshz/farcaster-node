@@ -1,0 +1,6 @@
+{
+  "name": "Farcaster Pulse Node",
+  "description": "A decentralized social monitoring node for the Farcaster network, built with MiniKit and Farcaster SDK.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
