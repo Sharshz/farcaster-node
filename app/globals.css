@@ -13,6 +13,17 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-slate-200 outline-indigo-500/50;
   }
+}
+
+.custom-scrollbar::-webkit-scrollbar { 
+  width: 4px; 
+}
+.custom-scrollbar::-webkit-scrollbar-track { 
+  background: transparent; 
+}
+.custom-scrollbar::-webkit-scrollbar-thumb { 
+  background: #334155; 
+  border-radius: 10px; 
 }

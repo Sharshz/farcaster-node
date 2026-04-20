@@ -48,6 +48,7 @@ export default function Home() {
   const [aiInsights, setAiInsights] = useState<string | null>(null);
   const [isAILoading, setIsAILoading] = useState(false);
   const [chartData, setChartData] = useState<any[]>([]);
+  const [logFilter, setLogFilter] = useState({ level: 'ALL', keyword: '' });
 
   // Settings State
   const [settings, setSettings] = useState({
@@ -60,13 +61,19 @@ export default function Home() {
     hubbleEndpoint: 'https://hubble.farcaster.xyz:2283'
   });
 
-  const addLog = (msg: string) => {
-    setLogs(prev => [...prev.slice(-20), `[${new Date().toLocaleTimeString()}] ${msg}`]);
+  const addLog = (msg: string, level: 'INFO' | 'WARN' | 'ERROR' = 'INFO') => {
+    setLogs(prev => [...prev.slice(-49), `[${level}] [${new Date().toLocaleTimeString()}] ${msg}`]);
   };
 
   const handleSaveSettings = () => {
     setShowConfirmDialog(true);
   };
+
+  const filteredLogs = logs.filter(log => {
+    const matchesLevel = logFilter.level === 'ALL' || log.includes(`[${logFilter.level}]`);
+    const matchesKeyword = log.toLowerCase().includes(logFilter.keyword.toLowerCase());
+    return matchesLevel && matchesKeyword;
+  });
 
   const confirmSaveSettings = () => {
     setShowConfirmDialog(false);
@@ -117,25 +124,25 @@ export default function Home() {
 
   useEffect(() => {
     const init = async () => {
-      addLog('Node starting sequence engaged...');
+      addLog('Node starting sequence engaged...', 'INFO');
       if (typeof window !== 'undefined') {
         try {
           await sdk.actions.ready();
-          addLog('SDK tunnel established.');
+          addLog('SDK tunnel established.', 'INFO');
           const context = await sdk.context;
           if (context) {
             setUser(context.user);
-            addLog(`Authorized: ${context.user?.displayName || 'Observer'}`);
+            addLog(`Authorized: ${context.user?.displayName || 'Observer'}`, 'INFO');
           }
         } catch (e) {
-          addLog('SDK connection bypass (local mode)');
+          addLog('SDK connection bypass (local mode)', 'WARN');
         }
       }
       
       setNodeStatus('syncing');
       const timer = setTimeout(() => {
         setNodeStatus('active');
-        addLog('Synchronization finalized. Network connection healthy.');
+        addLog('Synchronization finalized. Network connection healthy.', 'INFO');
       }, 3000);
       return () => clearTimeout(timer);
     };
@@ -352,28 +359,29 @@ export default function Home() {
                         </h3>
                         <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded uppercase font-mono tracking-widest animate-pulse">Live</span>
                       </div>
-                    <div className="p-6 flex-1 space-y-6">
-                      <SyncItem label="Cast Messages Sync" current={48122094} total={48122094} color="bg-emerald-500" />
-                      <SyncItem label="Reaction Delta Sync" current={112042391} total={112042391} color="bg-emerald-500" />
-                      <SyncItem label="Profile Data Backfill" current={1204882} total={1210000} color="bg-indigo-500" />
-                      
-                      <div className="pt-4 mt-4 border-t border-slate-50">
-                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Ingress Activity Stream</h4>
-                        <div className="space-y-2">
-                          {[...Array(3)].map((_, i) => (
-                            <div key={`stream-item-${i}`} className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100 group">
-                              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-200 text-slate-400">
-                                <Database size={12} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex justify-between items-center mb-0.5">
-                                  <p className="text-[10px] font-bold text-slate-700 truncate">SYNC_BLOCK_0x{Math.abs(8952-i)}...</p>
-                                  <span className="text-[8px] font-mono text-slate-400 uppercase">T-{i*4}s</span>
+                      <div className="p-6 flex-1 space-y-6">
+                        <SyncItem label="Cast Messages Sync" current={48122094} total={48122094} color="bg-emerald-500" />
+                        <SyncItem label="Reaction Delta Sync" current={112042391} total={112042391} color="bg-emerald-500" />
+                        <SyncItem label="Profile Data Backfill" current={1204882} total={1210000} color="bg-indigo-500" />
+                        
+                        <div className="pt-4 mt-4 border-t border-slate-50">
+                          <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Ingress Activity Stream</h4>
+                          <div className="space-y-2">
+                            {[...Array(3)].map((_, i) => (
+                              <div key={`stream-item-${i}`} className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100 group">
+                                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-200 text-slate-400">
+                                  <Database size={12} />
                                 </div>
-                                <p className="text-[9px] text-slate-500 truncate font-sans">Layer-2 Base tunnel consensus verified at edge node.</p>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex justify-between items-center mb-0.5">
+                                    <p className="text-[10px] font-bold text-slate-700 truncate">SYNC_BLOCK_0x{Math.abs(8952-i)}...</p>
+                                    <span className="text-[8px] font-mono text-slate-400 uppercase">T-{i*4}s</span>
+                                  </div>
+                                  <p className="text-[9px] text-slate-500 truncate font-sans">Layer-2 Base tunnel consensus verified at edge node.</p>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -394,25 +402,51 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <div className="flex-1 bg-slate-900 rounded-xl overflow-hidden shadow-xl flex flex-col border border-slate-800 min-h-[250px]">
-                      <div className="p-3 bg-slate-800/50 flex items-center justify-between border-b border-white/5">
+                    <div className="flex-1 bg-slate-900 rounded-xl overflow-hidden shadow-xl flex flex-col border border-slate-800 min-h-[300px]">
+                      <div className="p-3 bg-slate-800/50 flex items-center justify-between border-b border-white/5 shrink-0">
                         <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                           <TerminalIcon size={12} />
                           Terminal_Output
                         </div>
                         <div className="flex gap-1">
-                          <div className="w-1.5 h-1.5 rounded-full bg-red-400/80" />
-                          <div className="w-1.5 h-1.5 rounded-full bg-yellow-400/80" />
-                          <div className="w-1.5 h-1.5 rounded-full bg-green-400/80" />
+                          {['ALL', 'INFO', 'WARN', 'ERROR'].map((lvl) => (
+                            <button
+                              key={lvl}
+                              onClick={() => setLogFilter({ ...logFilter, level: lvl })}
+                              className={`px-1.5 py-0.5 rounded text-[8px] font-bold transition-all ${
+                                logFilter.level === lvl 
+                                  ? 'bg-indigo-500 text-white' 
+                                  : 'text-slate-500 hover:text-slate-300 bg-slate-800'
+                              }`}
+                            >
+                              {lvl}
+                            </button>
+                          ))}
                         </div>
                       </div>
+                      <div className="p-2 bg-slate-900 border-b border-white/5 shrink-0">
+                        <input 
+                          type="text"
+                          placeholder="Filter by keyword..."
+                          value={logFilter.keyword}
+                          onChange={(e) => setLogFilter({ ...logFilter, keyword: e.target.value })}
+                          className="w-full bg-slate-800/50 border border-slate-700 rounded px-2 py-1 text-[10px] text-slate-300 placeholder:text-slate-600 focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                        />
+                      </div>
                       <div className="p-4 flex-1 font-mono text-[9px] text-slate-300 space-y-1 overflow-y-auto custom-scrollbar">
-                        {logs.map((log, i) => (
+                        {filteredLogs.map((log, i) => (
                           <div key={`log-${i}`} className="flex gap-2">
-                            <span className="text-indigo-400 font-bold opacity-50 select-none">»</span>
-                            <span className="opacity-90 leading-relaxed font-mono">{log}</span>
+                            <span className={`font-bold opacity-80 select-none ${
+                              log.includes('[ERROR]') ? 'text-rose-400' : 
+                              log.includes('[WARN]') ? 'text-amber-400' : 'text-indigo-400'
+                            }`}>»</span>
+                            <span className={`opacity-90 leading-relaxed font-mono ${
+                              log.includes('[ERROR]') ? 'text-rose-200' : 
+                              log.includes('[WARN]') ? 'text-amber-100' : ''
+                            }`}>{log}</span>
                           </div>
                         ))}
+                        {filteredLogs.length === 0 && <div className="text-slate-600 italic">No logs match current filter...</div>}
                         <div className="w-1 h-3 bg-indigo-500/80 mt-1 inline-block animate-pulse" />
                       </div>
                     </div>
@@ -671,12 +705,6 @@ export default function Home() {
           </div>
         )}
       </AnimatePresence>
-
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-      `}</style>
     </div>
   );
 }
